@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { ShieldAlert, Eye, EyeOff, Copy, Check } from 'lucide-react';
 import { API_URL } from '../config';
 import './Login.css';
 
-const DEMO_EMAIL = 'admin@gidyops.com';
+const DEMO_EMAIL = 'admin@secops.com';
 const DEMO_PASSWORD = 'S3c!9xK2';
 
 const TITLES = {
@@ -56,6 +56,13 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
+
+  const handleCopy = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1000);
+  };
 
   const switchView = (next) => {
     setView(next);
@@ -214,8 +221,28 @@ const Login = ({ onLogin }) => {
         {view === 'login' && (
           <div className="login-credentials">
             <p className="credentials-label">Trial admin (no OTP needed)</p>
-            <p><span>Username:</span> {DEMO_EMAIL}</p>
-            <p><span>Password:</span> {DEMO_PASSWORD}</p>
+            <div className="credential-row">
+              <span><span>Username:</span> {DEMO_EMAIL}</span>
+              <button 
+                type="button" 
+                className="copy-btn" 
+                onClick={() => handleCopy(DEMO_EMAIL, 'email')} 
+                title="Copy Username"
+              >
+                {copiedField === 'email' ? <Check size={14} color="#22c55e" /> : <Copy size={14} />}
+              </button>
+            </div>
+            <div className="credential-row">
+              <span><span>Password:</span> {DEMO_PASSWORD}</span>
+              <button 
+                type="button" 
+                className="copy-btn" 
+                onClick={() => handleCopy(DEMO_PASSWORD, 'password')} 
+                title="Copy Password"
+              >
+                {copiedField === 'password' ? <Check size={14} color="#22c55e" /> : <Copy size={14} />}
+              </button>
+            </div>
           </div>
         )}
 
