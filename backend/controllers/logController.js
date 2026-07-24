@@ -283,11 +283,47 @@ const moveLogs = async (req, res) => {
     }
 };
 
+// @desc    Delete all logs for the current organization
+// @route   DELETE /api/logs/all
+// @access  Private
+const deleteAllOrgLogs = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
+    try {
+        const Member = require('../models/Member');
+        const membership = await Member.findOne({
+            userId: req.user._id,
+            organizationId: orgId,
+            status: 'Active',
+            role: { $in: ['Owner', 'Admin'] }
+        });
+
+        if (!membership) {
+            return res.status(403).json({
+                success: false,
+                message: 'Only Owner or Admin can delete all organization logs'
+            });
+        }
+
+        const result = await Log.deleteMany({ organizationId: orgId });
+        res.json({
+            success: true,
+            message: `Deleted ${result.deletedCount} logs from this organization`,
+            deletedCount: result.deletedCount
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error deleting organization logs' });
+    }
+};
+
 module.exports = {
     bulkUploadLogs,
     getLogs,
     getStats,
     bulkUpdateLogs,
     bulkDeleteLogs,
-    moveLogs
+    moveLogs,
+    deleteAllOrgLogs
 };

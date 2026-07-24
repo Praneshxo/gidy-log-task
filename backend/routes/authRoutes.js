@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
+const { protect } = require('../middleware/authMiddleware');
 
 // Helper to generate OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -185,6 +186,61 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get current user profile
+router.get('/profile', protect, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        avatar: req.user.avatar || '',
+        isAdmin: req.user.isAdmin,
+        lastLogin: req.user.lastLogin
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Update basic profile details
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const { name, avatar } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (typeof name === 'string' && name.trim()) {
+      user.name = name.trim();
+    }
+    if (typeof avatar === 'string') {
+      user.avatar = avatar.trim();
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated',
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || '',
+        isAdmin: user.isAdmin,
+        token: req.headers.authorization?.split(' ')[1]
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error updating profile' });
   }
 });
 

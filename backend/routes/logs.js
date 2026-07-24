@@ -6,7 +6,8 @@ const {
     getStats,
     bulkUpdateLogs,
     bulkDeleteLogs,
-    moveLogs
+    moveLogs,
+    deleteAllOrgLogs
 } = require('../controllers/logController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -18,6 +19,9 @@ router.route('/stats')
 
 router.route('/')
     .get(getLogs);
+
+router.route('/all')
+    .delete(deleteAllOrgLogs);
 
 router.route('/bulk')
     .post(bulkUploadLogs);

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, ShieldAlert, FileJson, Server, Folder, CheckCircle2 } from 'lucide-react';
+import { Activity, ShieldAlert, FileJson, Server, Folder, CheckCircle2, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import './App.css';
 import LogTable from './components/LogTable';
 import UploadModal from './components/UploadModal';
+import Settings from './components/Settings';
 import { API_URL } from './config';
 import Login from './components/Login';
 import OrganizationSelect from './components/OrganizationSelect';
@@ -19,6 +20,7 @@ function App() {
   });
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [logView, setLogView] = useState('UNRESOLVED');
   const [fixedCount, setFixedCount] = useState(0);
@@ -78,9 +80,23 @@ function App() {
     setCurrentOrg(org);
     localStorage.setItem('currentOrg', JSON.stringify(org));
     setLogView('UNRESOLVED');
+    setShowSettings(false);
   };
 
   const changeOrg = () => {
+    setCurrentOrg(null);
+    localStorage.removeItem('currentOrg');
+    setShowSettings(false);
+  };
+
+  const handleUserUpdate = (updatedUser) => {
+    const next = { ...user, ...updatedUser };
+    setUser(next);
+    localStorage.setItem('user', JSON.stringify(next));
+  };
+
+  const handleOrgDeleted = () => {
+    setShowSettings(false);
     setCurrentOrg(null);
     localStorage.removeItem('currentOrg');
   };
@@ -113,72 +129,102 @@ function App() {
           <span className="header-title">Gidyops</span>
         </div>
         <div className="header-actions">
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '1rem', background: 'rgba(255,255,255,0.1)', padding: '0.25rem 0.75rem', borderRadius: '4px' }}>
-            <Folder size={16} /> {currentOrg.name}
-            <button onClick={changeOrg} style={{ background: 'none', border: 'none', color: 'var(--accent-green)', cursor: 'pointer', fontSize: '0.8rem', marginLeft: '0.5rem' }}>Change</button>
-          </span>
-          <button className="btn btn-primary" onClick={() => setIsUploadOpen(true)}>
-            <FileJson size={18} />
-            Upload Logs
+          <div className="org-chip">
+            <Folder size={16} className="org-chip-icon" />
+            <span className="org-chip-name" title={currentOrg.name}>{currentOrg.name}</span>
+            <button type="button" className="org-chip-change" onClick={changeOrg}>Change</button>
+          </div>
+          {!showSettings && (
+            <button className="btn btn-primary header-btn" onClick={() => setIsUploadOpen(true)}>
+              <FileJson size={18} />
+              <span className="btn-label">Upload Logs</span>
+            </button>
+          )}
+          <button
+            className="btn btn-logout header-btn"
+            onClick={() => setShowSettings((prev) => !prev)}
+            title="Settings"
+          >
+            <SettingsIcon size={18} />
+            <span className="btn-label">Settings</span>
           </button>
-          <button className="btn btn-logout" onClick={handleLogout}>
-            Logout
+          <button className="btn btn-logout header-btn" onClick={handleLogout} title="Logout">
+            <LogOut size={18} />
+            <span className="btn-label">Logout</span>
           </button>
         </div>
       </header>
 
       <main className="main-content">
-        <div className="dashboard-header animate-fade-in">
-          <div>
-            <h1 style={{ marginBottom: '0.5rem' }}>
-              {logView === 'FIXED' ? 'Fixed Logs' : `Organization Dashboard: ${currentOrg.name}`}
-            </h1>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {logView === 'FIXED'
-                ? 'Resolved events marked as fixed.'
-                : 'Real-time analysis and management of your records.'}
-            </p>
-          </div>
-          <div className="dashboard-header-actions">
-            {logView === 'FIXED' ? (
-              <button className="btn btn-outline" onClick={() => setLogView('UNRESOLVED')}>
-                Back to active logs
-              </button>
-            ) : (
-              <button className="btn btn-fixed-list" onClick={() => setLogView('FIXED')}>
-                <CheckCircle2 size={18} />
-                View Fixed
-                <span className="fixed-count">{fixedCount}</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {logView === 'UNRESOLVED' && (
-          <div className="stat-cards animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            {statCards.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div key={index} className="stat-card glass-panel">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="stat-card-title">{stat.title}</span>
-                    <Icon size={20} color={stat.color} />
-                  </div>
-                  <span className="stat-card-value">{stat.value}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.2s', padding: '1.5rem' }}>
-          <LogTable
-            refreshTrigger={refreshTrigger}
+        {showSettings ? (
+          <Settings
+            user={user}
             currentOrg={currentOrg}
-            resolutionView={logView}
-            onLogsChanged={bumpRefresh}
+            onBack={() => setShowSettings(false)}
+            onUserUpdate={handleUserUpdate}
+            onOrgDeleted={handleOrgDeleted}
+            onLogsCleared={bumpRefresh}
           />
-        </div>
+        ) : (
+          <>
+            <div className="dashboard-header animate-fade-in">
+              <div className="dashboard-header-text">
+                <h1>
+                  {logView === 'FIXED' ? 'Fixed Logs' : (
+                    <>
+                      <span className="dash-title-full">Organization Dashboard: {currentOrg.name}</span>
+                      <span className="dash-title-short">{currentOrg.name}</span>
+                    </>
+                  )}
+                </h1>
+                <p className="dashboard-subtitle">
+                  {logView === 'FIXED'
+                    ? 'Resolved events marked as fixed.'
+                    : 'Real-time analysis and management of your records.'}
+                </p>
+              </div>
+              <div className="dashboard-header-actions">
+                {logView === 'FIXED' ? (
+                  <button className="btn btn-outline" onClick={() => setLogView('UNRESOLVED')}>
+                    Back to active logs
+                  </button>
+                ) : (
+                  <button className="btn btn-fixed-list" onClick={() => setLogView('FIXED')}>
+                    <CheckCircle2 size={18} />
+                    View Fixed
+                    <span className="fixed-count">{fixedCount}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {logView === 'UNRESOLVED' && (
+              <div className="stat-cards animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                {statCards.map((stat, index) => {
+                  const Icon = stat.icon;
+                  return (
+                    <div key={index} className="stat-card glass-panel">
+                      <div className="stat-card-top">
+                        <span className="stat-card-title">{stat.title}</span>
+                        <Icon size={20} color={stat.color} />
+                      </div>
+                      <span className="stat-card-value">{stat.value}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="glass-panel logs-panel animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <LogTable
+                refreshTrigger={refreshTrigger}
+                currentOrg={currentOrg}
+                resolutionView={logView}
+                onLogsChanged={bumpRefresh}
+              />
+            </div>
+          </>
+        )}
       </main>
 
       {isUploadOpen && (
