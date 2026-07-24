@@ -27,7 +27,7 @@
 
 .search-bar input {
   width: 100%;
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: 0.6rem 1rem 0.6rem 2.5rem;
@@ -40,6 +40,7 @@
 .search-bar input:focus {
   outline: none;
   border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(27, 108, 168, 0.12);
 }
 
 .filters {
@@ -51,7 +52,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: 0 0.75rem;
@@ -69,7 +70,7 @@
 }
 
 .filter-group select option {
-  background: var(--bg-secondary);
+  background: var(--panel-bg);
   color: var(--text-primary);
 }
 
@@ -77,8 +78,8 @@
   overflow-x: auto;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
-  background: rgba(15, 23, 42, 0.3);
-  min-height: 400px; /* Prevent huge layout shifts during loading */
+  background: var(--panel-bg);
+  min-height: 400px;
 }
 
 .data-table {
@@ -92,10 +93,11 @@
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
+  color: var(--text-primary);
 }
 
 .data-table th {
-  background: rgba(30, 41, 59, 0.9);
+  background: var(--bg-secondary);
   color: var(--text-secondary);
   font-weight: 600;
   font-size: 0.75rem;
@@ -118,7 +120,7 @@
 }
 
 .data-table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(27, 108, 168, 0.04);
 }
 
 .data-table tbody tr:last-child td {
@@ -128,7 +130,7 @@
 .monospace {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: #1a2b3c;
 }
 
 .fw-500 { font-weight: 500; }
@@ -145,7 +147,7 @@
 }
 
 .table-state.error {
-  color: #fca5a5;
+  color: var(--status-failure);
 }
 
 /* Skeleton Loading */
@@ -155,7 +157,7 @@
 
 .skeleton-box {
   height: 20px;
-  background: linear-gradient(90deg, var(--bg-hover) 25%, rgba(51, 65, 85, 0.5) 50%, var(--bg-hover) 75%);
+  background: linear-gradient(90deg, var(--bg-hover) 25%, #f0f4f8 50%, var(--bg-hover) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -188,7 +190,7 @@
 }
 
 .limit-select {
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   border-radius: 4px;
@@ -198,11 +200,11 @@
 }
 
 .limit-select option {
-  background: var(--bg-secondary);
+  background: var(--panel-bg);
 }
 
 .btn-icon {
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--panel-bg);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   width: 32px;
@@ -217,7 +219,8 @@
 
 .btn-icon:hover:not(:disabled) {
   background: var(--bg-hover);
-  border-color: var(--text-muted);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .btn-icon:disabled {
@@ -229,4 +232,62 @@
   font-size: 0.875rem;
   color: var(--text-primary);
   font-weight: 500;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.bulk-btn {
+  font-size: 0.8rem;
+}
+
+.bulk-btn.delete {
+  color: var(--status-failure);
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+.bulk-select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.th-sort:hover {
+  color: var(--accent-primary);
+}
+
+.sort-dir {
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+}
+
+.clickable-row.selected {
+  background: rgba(27, 108, 168, 0.06);
 }

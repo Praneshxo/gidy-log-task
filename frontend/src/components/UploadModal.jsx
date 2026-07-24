@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, X, FileJson, CheckCircle2, AlertCircle, FileSearch, ArrowRight } from 'lucide-react';
+import { UploadCloud, X, FileJson, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { API_URL } from '../config';
 import './UploadModal.css';
 
-const UploadModal = ({ onClose, onSuccess }) => {
+const UploadModal = ({ onClose, onSuccess, currentOrg }) => {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
   const [step, setStep] = useState(1); // 1: Select, 2: Preview, 3: Result
@@ -11,9 +11,12 @@ const UploadModal = ({ onClose, onSuccess }) => {
   const [previewData, setPreviewData] = useState({ total: 0, valid: 0, invalid: 0, parsedJson: null });
   const [uploadResult, setUploadResult] = useState({ inserted: 0, failed: 0, errors: [] });
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadPhase, setUploadPhase] = useState('idle'); // idle | preparing | uploading | processing
   
   const [errorMessage, setErrorMessage] = useState('');
   const inputRef = useRef(null);
+  const xhrRef = useRef(null);
 
   const handleDrag = (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -65,37 +68,86 @@ const UploadModal = ({ onClose, onSuccess }) => {
     }
   };
 
-  const uploadData = async () => {
+  const uploadData = () => {
+    setErrorMessage('');
     setIsUploading(true);
+    setUploadProgress(0);
+    setUploadPhase('preparing');
+
+    let body;
     try {
-      const response = await fetch(`${API_URL}/api/logs/bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(previewData.parsedJson)
-      });
-
-      const result = await response.json();
-
-      if (response.status === 201) {
-        setUploadResult({ inserted: result.count, failed: 0, errors: [] });
-      } else if (response.status === 207) {
-        // Partial Success
-        setUploadResult({ 
-          inserted: result.insertedCount, 
-          failed: result.errors?.length || 0, 
-          errors: result.errors 
-        });
-      } else {
-        throw new Error(result.message || 'Upload failed');
-      }
-      
-      setStep(3);
-    } catch (error) {
-      setErrorMessage(error.message);
-    } finally {
+      body = JSON.stringify(previewData.parsedJson);
+    } catch (err) {
+      setErrorMessage('Failed to prepare upload: ' + err.message);
       setIsUploading(false);
+      setUploadPhase('idle');
+      return;
     }
+
+    setUploadPhase('uploading');
+
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+
+    xhr.open('POST', `${API_URL}/api/logs/bulk`);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
+    if (currentOrg) {
+      xhr.setRequestHeader('x-organization-id', currentOrg._id);
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const pct = Math.min(99, Math.round((event.loaded / event.total) * 100));
+      setUploadProgress(pct);
+    };
+
+    xhr.upload.onload = () => {
+      setUploadProgress(100);
+      setUploadPhase('processing');
+    };
+
+    xhr.onload = () => {
+      try {
+        const result = JSON.parse(xhr.responseText || '{}');
+
+        if (xhr.status === 201) {
+          setUploadResult({ inserted: result.count, failed: 0, errors: [] });
+          setStep(3);
+        } else if (xhr.status === 207) {
+          setUploadResult({
+            inserted: result.insertedCount,
+            failed: result.errors?.length || 0,
+            errors: result.errors
+          });
+          setStep(3);
+        } else {
+          throw new Error(result.message || 'Upload failed');
+        }
+      } catch (error) {
+        setErrorMessage(error.message || 'Upload failed');
+      } finally {
+        setIsUploading(false);
+        setUploadPhase('idle');
+        xhrRef.current = null;
+      }
+    };
+
+    xhr.onerror = () => {
+      setErrorMessage('Network error while uploading. Check that the API is reachable.');
+      setIsUploading(false);
+      setUploadPhase('idle');
+      xhrRef.current = null;
+    };
+
+    xhr.send(body);
   };
+
+  const progressLabel =
+    uploadPhase === 'preparing' ? 'Preparing payload…'
+    : uploadPhase === 'uploading' ? `Uploading… ${uploadProgress}%`
+    : uploadPhase === 'processing' ? 'Processing on server…'
+    : '';
 
   return (
     <div className="modal-overlay animate-fade-in">
@@ -139,6 +191,21 @@ const UploadModal = ({ onClose, onSuccess }) => {
                 <div className="stat-pill success">Valid: <b>{previewData.valid.toLocaleString()}</b></div>
                 {previewData.invalid > 0 && <div className="stat-pill error">Invalid Format: <b>{previewData.invalid.toLocaleString()}</b></div>}
               </div>
+
+              {isUploading && (
+                <div className="upload-progress" role="progressbar" aria-valuenow={uploadProgress} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="upload-progress-header">
+                    <span>{progressLabel}</span>
+                    {uploadPhase === 'uploading' && <span className="upload-progress-pct">{uploadProgress}%</span>}
+                  </div>
+                  <div className="upload-progress-track">
+                    <div
+                      className={`upload-progress-fill ${uploadPhase === 'processing' ? 'indeterminate' : ''}`}
+                      style={uploadPhase === 'processing' ? undefined : { width: `${Math.max(uploadProgress, uploadPhase === 'preparing' ? 8 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               
               {errorMessage && <div className="error-message"><AlertCircle size={16} />{errorMessage}</div>}
             </div>
@@ -182,7 +249,10 @@ const UploadModal = ({ onClose, onSuccess }) => {
             <>
               <button className="btn btn-outline" onClick={() => setStep(1)} disabled={isUploading}>Back</button>
               <button className="btn btn-primary" onClick={uploadData} disabled={isUploading || previewData.valid === 0}>
-                {isUploading ? 'Uploading...' : `Upload ${previewData.valid} Records`} <ArrowRight size={16} />
+                {isUploading
+                  ? (uploadPhase === 'processing' ? 'Processing…' : `Uploading ${uploadProgress}%`)
+                  : `Upload ${previewData.valid.toLocaleString()} Records`}
+                {!isUploading && <ArrowRight size={16} />}
               </button>
             </>
           )}

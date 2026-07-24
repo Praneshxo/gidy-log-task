@@ -1,26 +1,37 @@
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-hover: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  
-  --accent-primary: #3b82f6;
-  --accent-hover: #2563eb;
-  
-  --border-color: #334155;
-  --border-radius: 8px;
-  
-  --severity-info: #0ea5e9;
-  --severity-low: #22c55e;
-  --severity-medium: #f59e0b;
-  --severity-high: #f97316;
-  --severity-critical: #ef4444;
+  /* White primary, blue secondary, green small accents */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f8fb;
+  --bg-hover: #e8eef5;
+  --bg-header: #032d42;
+  --bg-color: #f0f4f8;
+  --panel-bg: #ffffff;
 
-  --status-success: #10b981;
-  --status-failure: #ef4444;
-  --status-pending: #8b5cf6;
+  --text-primary: #1a2b3c;
+  --text-secondary: #5a6b7d;
+  --text-muted: #8494a7;
+  --text-on-dark: #ffffff;
+
+  --accent-primary: #1b6ca8;
+  --accent-hover: #155a8f;
+  --accent-green: #62d84e;
+  --accent-green-soft: rgba(98, 216, 78, 0.12);
+
+  --border-color: #d0dae4;
+  --border-radius: 8px;
+
+  --severity-info: #1b6ca8;
+  --severity-low: #22a06b;
+  --severity-medium: #d97706;
+  --severity-high: #e85d04;
+  --severity-critical: #dc2626;
+
+  --status-success: #22a06b;
+  --status-failure: #dc2626;
+  --status-pending: #7c3aed;
+
+  --shadow-sm: 0 1px 3px rgba(3, 45, 66, 0.08);
+  --shadow-md: 0 8px 24px rgba(3, 45, 66, 0.12);
 }
 
 * {
@@ -31,7 +42,7 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -41,6 +52,7 @@ body {
 h1, h2, h3 {
   font-weight: 600;
   letter-spacing: -0.025em;
+  color: var(--text-primary);
 }
 
 /* Utility Classes */
@@ -50,13 +62,12 @@ h1, h2, h3 {
   padding: 2rem;
 }
 
-/* Glassmorphism effects */
+/* Surfaces */
 .glass-panel {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Buttons */
@@ -125,10 +136,10 @@ h1, h2, h3 {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-hover);
+  background: #b8c4d0;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {

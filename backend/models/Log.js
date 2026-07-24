@@ -42,6 +42,16 @@ const logSchema = new mongoose.Schema({
         enum: ['SUCCESS', 'FAILURE', 'PENDING'],
         default: 'SUCCESS'
     },
+    resolution: {
+        type: String,
+        enum: ['UNRESOLVED', 'FIXED'],
+        default: 'UNRESOLVED'
+    },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization',
+        required: true
+    },
     timestamp: {
         type: Date,
         required: true,
@@ -55,10 +65,15 @@ const logSchema = new mongoose.Schema({
 logSchema.index({ timestamp: -1 });
 logSchema.index({ severity: 1 });
 logSchema.index({ status: 1 });
+logSchema.index({ resolution: 1 });
+logSchema.index({ organizationId: 1, resolution: 1, timestamp: -1 });
 // Compound indexes for common SecOps queries ("High severity, newest first")
 logSchema.index({ severity: 1, timestamp: -1 });
 logSchema.index({ status: 1, timestamp: -1 });
 logSchema.index({ severity: 1, status: 1, timestamp: -1 });
+logSchema.index({ organizationId: 1, timestamp: -1 });
+logSchema.index({ organizationId: 1, severity: 1, timestamp: -1 });
+logSchema.index({ organizationId: 1, status: 1, timestamp: -1 });
 
 // Text index for search functionality on actor and resource
 logSchema.index({ actor: 'text', resource: 'text' });

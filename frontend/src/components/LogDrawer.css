@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.5);
+  background-color: rgba(3, 45, 66, 0.35);
   z-index: 50;
   backdrop-filter: blur(2px);
 }
@@ -16,8 +16,8 @@
   bottom: 0;
   width: 100%;
   max-width: 500px;
-  background-color: var(--bg-secondary);
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  background-color: var(--panel-bg);
+  box-shadow: var(--shadow-md);
   z-index: 51;
   display: flex;
   flex-direction: column;
@@ -40,21 +40,30 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: var(--bg-primary);
+  background: var(--bg-header);
+  color: var(--text-on-dark);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
+.drawer-header .btn-close {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.drawer-header .btn-close:hover {
+  color: var(--text-on-dark);
+}
+
 .drawer-title {
   margin: 0;
   font-size: 1.25rem;
-  color: var(--text-primary);
+  color: var(--text-on-dark);
 }
 
 .drawer-subtitle {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.65);
   font-family: monospace;
 }
 
@@ -63,6 +72,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  background: var(--bg-secondary);
 }
 
 .detail-hero {
@@ -70,6 +80,10 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  border-left: 3px solid var(--accent-green);
 }
 
 .detail-badge-row {
@@ -94,6 +108,10 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1rem;
 }
 
 .detail-group.full-width {
@@ -136,12 +154,13 @@
 }
 
 .raw-json {
-  background: #000;
+  background: #032d42;
   padding: 1rem;
   border-radius: var(--border-radius);
   font-size: 0.8rem;
   overflow-x: auto;
-  color: #a5b4fc;
+  color: #9fd4ff;
+  border-left: 3px solid var(--accent-green);
 }
 
 .clickable-row {

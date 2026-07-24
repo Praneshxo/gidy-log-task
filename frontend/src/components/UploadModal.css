@@ -1,7 +1,7 @@
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.8);
+  background-color: rgba(3, 45, 66, 0.45);
   backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
@@ -10,19 +10,21 @@
 .modal-content {
   width: 90%;
   max-width: 500px;
-  background: var(--bg-secondary);
+  background: var(--panel-bg);
   display: flex; flex-direction: column;
   border-radius: var(--border-radius);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-md);
   transition: max-width 0.3s ease;
+  border-top: 3px solid var(--accent-green);
 }
 
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
   padding: 1.5rem; border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
-.modal-header h2 { font-size: 1.25rem; margin: 0; }
+.modal-header h2 { font-size: 1.25rem; margin: 0; color: var(--text-primary); }
 
 .btn-close {
   background: transparent; border: none; color: var(--text-muted);
@@ -39,12 +41,12 @@
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: rgba(15, 23, 42, 0.3);
+  background-color: var(--bg-secondary);
 }
 
 .drop-zone:hover, .drop-zone.active {
   border-color: var(--accent-primary);
-  background-color: rgba(59, 130, 246, 0.05);
+  background-color: rgba(27, 108, 168, 0.06);
 }
 
 .drop-prompt {
@@ -55,7 +57,7 @@
 
 .file-info-box {
   display: flex; align-items: center; gap: 1rem;
-  background: rgba(15, 23, 42, 0.5); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);
+  background: var(--bg-secondary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);
   margin-bottom: 1.5rem;
 }
 
@@ -67,12 +69,12 @@
   padding: 0.5rem 1rem; background: var(--bg-hover); border-radius: 99px;
   font-size: 0.875rem; color: var(--text-primary);
 }
-.stat-pill.success { background: rgba(34, 197, 94, 0.1); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.2); }
-.stat-pill.error { background: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
+.stat-pill.success { background: var(--accent-green-soft); color: #15803d; border: 1px solid rgba(98, 216, 78, 0.35); }
+.stat-pill.error { background: rgba(220, 38, 38, 0.08); color: #b91c1c; border: 1px solid rgba(220, 38, 38, 0.2); }
 
 .error-message {
-  margin-top: 1rem; padding: 0.75rem; background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: #fca5a5;
+  margin-top: 1rem; padding: 0.75rem; background-color: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25); border-radius: 6px; color: #b91c1c;
   display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;
 }
 
@@ -85,7 +87,7 @@
 }
 
 .error-list {
-  max-height: 200px; overflow-y: auto; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color);
+  max-height: 200px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--border-color);
   border-radius: 6px; padding: 0.5rem; font-family: monospace; font-size: 0.8rem;
 }
 
@@ -94,8 +96,55 @@
 }
 .error-row:last-child { border-bottom: none; }
 .err-index { color: var(--text-muted); min-width: 60px; }
-.err-msg { color: #fca5a5; }
+.err-msg { color: #b91c1c; }
+
+.upload-progress {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.upload-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.upload-progress-pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.upload-progress-track {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-green));
+  transition: width 0.2s ease;
+}
+
+.upload-progress-fill.indeterminate {
+  width: 40%;
+  animation: upload-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes upload-indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
 
 .modal-footer {
-  padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 1rem; background: rgba(15, 23, 42, 0.3);
+  padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 1rem; background: var(--bg-secondary);
 }

@@ -1,17 +1,32 @@
 const Log = require('../models/Log');
 
+// Helper to check if organization ID is present
+const checkOrgId = (req, res) => {
+    const orgId = req.headers['x-organization-id'];
+    if (!orgId) {
+        res.status(400).json({ success: false, message: 'Organization ID is required in headers (x-organization-id)' });
+        return null;
+    }
+    return orgId;
+};
+
 // @desc    Bulk upload logs
 // @route   POST /api/logs/bulk
-// @access  Public
+// @access  Private
 const bulkUploadLogs = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
     try {
-        const logs = req.body;
+        let logs = req.body;
 
         if (!Array.isArray(logs) || logs.length === 0) {
             return res.status(400).json({ success: false, message: 'Invalid data format. Expected a non-empty array of logs.' });
         }
 
-        // Process in chunks to prevent massive memory spikes on the DB
+        // Add organizationId to each log
+        logs = logs.map(log => ({ ...log, organizationId: orgId }));
+
         const CHUNK_SIZE = 2000;
         let insertedCount = 0;
         const allErrors = [];
@@ -19,21 +34,18 @@ const bulkUploadLogs = async (req, res) => {
         for (let i = 0; i < logs.length; i += CHUNK_SIZE) {
             const chunk = logs.slice(i, i + CHUNK_SIZE);
             try {
-                // ordered: false allows valid documents in the chunk to pass even if some fail
                 const result = await Log.insertMany(chunk, { ordered: false });
                 insertedCount += result.length;
             } catch (error) {
                 if (error.name === 'BulkWriteError' || error.code === 11000) {
                     insertedCount += error.result.nInserted;
-                    
-                    // Remap the error index to the global array index
                     const mappedErrors = error.writeErrors.map(e => ({
                         index: i + e.index,
                         message: e.errmsg
                     }));
                     allErrors.push(...mappedErrors);
                 } else {
-                    throw error; // Unexpected error, break loop
+                    throw error;
                 }
             }
         }
@@ -60,57 +72,75 @@ const bulkUploadLogs = async (req, res) => {
 
 // @desc    Get logs with filtering, sorting, pagination and search
 // @route   GET /api/logs
-// @access  Public
+// @access  Private
 const getLogs = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
     try {
         const { 
             page = 1, 
             limit = 50, 
             severity, 
             status, 
+            resolution,
             search,
             sortBy = 'timestamp',
             sortOrder = 'desc'
         } = req.query;
 
-        // Build query object
-        const query = {};
+        // Build query object with orgId isolation
+        const query = { organizationId: orgId };
+        const andConditions = [];
 
-        // Filtering
         if (severity) query.severity = severity;
         if (status) query.status = status;
 
-        // Text Search on actor or resource (requires text index on those fields)
-        if (search) {
-            query.$text = { $search: search };
+        if (resolution === 'UNRESOLVED') {
+            andConditions.push({
+                $or: [
+                    { resolution: 'UNRESOLVED' },
+                    { resolution: { $exists: false } },
+                    { resolution: null }
+                ]
+            });
+        } else if (resolution) {
+            query.resolution = resolution;
         }
 
-        // Pagination setup
+        if (search) {
+            andConditions.push({
+                $or: [
+                    { actor: { $regex: search, $options: 'i' } },
+                    { resource: { $regex: search, $options: 'i' } },
+                    { action: { $regex: search, $options: 'i' } }
+                ]
+            });
+        }
+
+        if (andConditions.length) {
+            query.$and = andConditions;
+        }
+
         const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
+        const limitNum = Math.min(parseInt(limit, 10) || 50, 200);
         const skip = (pageNum - 1) * limitNum;
 
-        // Sorting setup
-        const sortOptions = {};
-        if (search) {
-            // If searching, sort by relevance score first, then fallback
-            sortOptions.score = { $meta: 'textScore' };
-        }
-        sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+        const allowedSort = new Set(['timestamp', 'action', 'actor', 'severity', 'status', 'resolution', 'resource']);
+        const sortField = allowedSort.has(sortBy) ? sortBy : 'timestamp';
+        const sortOptions = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
 
-        // Execute query with lean() for better performance (bypasses Mongoose hydration)
         const logsPromise = Log.find(query)
             .sort(sortOptions)
             .skip(skip)
             .limit(limitNum)
             .lean();
 
-        // Get total count for pagination metadata
         const countPromise = Log.countDocuments(query);
 
         const [logs, totalRecords] = await Promise.all([logsPromise, countPromise]);
 
-        const totalPages = Math.ceil(totalRecords / limitNum);
+        const totalPages = Math.ceil(totalRecords / limitNum) || 1;
 
         res.status(200).json({
             success: true,
@@ -131,10 +161,18 @@ const getLogs = async (req, res) => {
 
 // @desc    Get dashboard analytics stats
 // @route   GET /api/logs/stats
-// @access  Public
+// @access  Private
 const getStats = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
     try {
+        // Must cast orgId to ObjectId for aggregate pipeline
+        const mongoose = require('mongoose');
+        const matchStage = { $match: { organizationId: new mongoose.Types.ObjectId(orgId) } };
+
         const stats = await Log.aggregate([
+            matchStage,
             {
                 $facet: {
                     totalEvents: [{ $count: "count" }],
@@ -170,8 +208,86 @@ const getStats = async (req, res) => {
     }
 };
 
+// @desc    Bulk update logs (e.g. mark as FIXED)
+// @route   PUT /api/logs/bulk-update
+// @access  Private
+const bulkUpdateLogs = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
+    try {
+        const { logIds, updateData } = req.body; // e.g. updateData: { resolution: 'FIXED' }
+        if (!Array.isArray(logIds) || logIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'logIds array is required' });
+        }
+
+        const result = await Log.updateMany(
+            { _id: { $in: logIds }, organizationId: orgId },
+            { $set: updateData }
+        );
+
+        res.json({ success: true, message: `Updated ${result.modifiedCount} logs` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error updating logs' });
+    }
+};
+
+// @desc    Bulk delete logs
+// @route   DELETE /api/logs/bulk-delete
+// @access  Private
+const bulkDeleteLogs = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
+    try {
+        const { logIds } = req.body;
+        if (!Array.isArray(logIds) || logIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'logIds array is required' });
+        }
+
+        const result = await Log.deleteMany({
+            _id: { $in: logIds },
+            organizationId: orgId
+        });
+
+        res.json({ success: true, message: `Deleted ${result.deletedCount} logs` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error deleting logs' });
+    }
+};
+
+// @desc    Move logs to another organization/folder
+// @route   POST /api/logs/move
+// @access  Private
+const moveLogs = async (req, res) => {
+    const orgId = checkOrgId(req, res);
+    if (!orgId) return;
+
+    try {
+        const { logIds, targetOrganizationId } = req.body;
+        if (!Array.isArray(logIds) || logIds.length === 0 || !targetOrganizationId) {
+            return res.status(400).json({ success: false, message: 'logIds array and targetOrganizationId are required' });
+        }
+
+        const result = await Log.updateMany(
+            { _id: { $in: logIds }, organizationId: orgId },
+            { $set: { organizationId: targetOrganizationId } }
+        );
+
+        res.json({ success: true, message: `Moved ${result.modifiedCount} logs` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error moving logs' });
+    }
+};
+
 module.exports = {
     bulkUploadLogs,
     getLogs,
-    getStats
+    getStats,
+    bulkUpdateLogs,
+    bulkDeleteLogs,
+    moveLogs
 };

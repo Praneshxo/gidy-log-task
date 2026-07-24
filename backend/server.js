@@ -26,9 +26,13 @@ app.get('/', (req, res) => {
 
 // Mount API routes
 app.use('/api/logs', require('./routes/logs'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/orgs', require('./routes/orgRoutes'));
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const seedAdmin = require('./scripts/seedAdmin');
+app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    await seedAdmin();
 });
