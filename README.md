@@ -1,162 +1,118 @@
-# Gidyops — SecOps Log Analytics
+# Gidyops 
 
-Multi-tenant log analytics app with auth, organizations, bulk upload (10k+ records), and a server-side searchable/sortable/paginated dashboard.
+Gidyops is a multi-tenant log analytics and management platform built to ingest, monitor, and manage security events and application logs across different departments or products.
 
-## Features
+## 🚀 Setup Instructions
 
-- **Auth** — Login, register (OTP email), forgot/reset password; trial admin for evaluators
-- **Organizations** — After login, select or create a workspace (Pavo-style flow)
-- **Bulk upload API** — `POST /api/logs/bulk` accepts and stores large batches (chunked insert, supports 10,000 logs in one request)
-- **Dashboard** — View org-scoped logs with stats cards
-- **Server-side** search, filter (severity / status / resolution), sort, and pagination
-- **Fixed list** — Mark logs as Fixed; view them separately via **View Fixed**
+### Prerequisites
+- Node.js (v18+)
+- MongoDB (Local or Atlas)
+- Git
 
-## Stack
+### 1. Backend Setup
+1. Open a terminal and navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure Environment Variables:
+   Create a `.env` file in the `backend` directory (if not already present) and add the following:
+   ```env
+   PORT=5000
+   MONGO_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret
+   SMTP_EMAIL=praneshgara@gmail.com
+   SMTP_PASSWORD=your_app_password
+   ```
+4. Start the server (with auto-reload enabled):
+   ```bash
+   npm run dev
+   ```
 
-| Layer    | Tech                          |
-|----------|-------------------------------|
-| Frontend | React (Vite), lucide-react    |
-| Backend  | Node.js, Express              |
-| Database | MongoDB (Atlas or local)      |
-| Email    | Nodemailer (Gmail SMTP)       |
+### 2. Frontend Setup
+1. Open a new terminal and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the React application:
+   ```bash
+   npm run dev
+   ```
+4. Access the web interface at `http://localhost:5173` (or the port provided by Vite).
 
-## Prerequisites
+---
 
-- Node.js 18+
-- MongoDB Atlas URI (or local MongoDB)
-- Gmail app password (for OTP / reset emails), optional for trial-admin-only use
+## 🏗️ Technical Decisions & Architecture Journey
 
-## Setup
+### 1. Multi-Tenant Organization System
+**Decision:** We transitioned the app from a single-user data pool to a strict multi-tenant architecture using an `Organization` hierarchy.
+**Reasoning & Origin:** This idea was inspired by a freelance ERP project. By implementing organizations, the system becomes highly usable for managing logs across multiple distinct departments, products, or client environments within a single deployment. Data is strictly isolated—users must pass an `x-organization-id` header to view or modify their logs.
 
-### 1. Clone and install
+### 2. OTP Authentication & User Limits
+**Decision:** We implemented a secure, email-based OTP (One Time Password) system for Registration, Login Verification, and Password Resets using `Nodemailer`.
+**Reasoning:** To ensure that only verified personnel can access sensitive logs without relying on heavy third-party OAuth providers. We also enforced a hard limit of 5 new users at the database level to maintain control over beta access and prevent spam.
 
-```bash
-cd gidy
+### 3. Bulk Data Processing
+**Decision:** Added specialized backend routes for Bulk Upload, Bulk Delete, Bulk Mark-as-Fixed, and Bulk Move.
+**Reasoning:** Security logs are often generated in massive JSON arrays. We utilized Mongoose's `insertMany`, `updateMany`, and `deleteMany` to process these arrays in chunks, drastically reducing memory overhead and preventing database timeouts. The "Move to Organization" feature was added to easily migrate logs if they were uploaded to the wrong department.
 
-# Backend
-cd backend
-npm install
+### 4. High-Performance MongoDB Indexing
+**Decision:** Applied compound indexes (`timestamp`, `severity`, `status`) and text-based search indexes (`actor`, `resource`) on the `Log` model.
+**Reasoning:** Log tables grow incredibly fast. Without proper indexing, querying "High severity logs from the last 24 hours" would require a full collection scan. The compound indexes ensure that pagination and dashboard aggregations resolve in milliseconds.
 
-# Frontend
-cd ../frontend
-npm install
-```
+### 5. Custom React UI & State Management
+**Decision:** Built the frontend using React (Vite) with vanilla CSS and Lucide React icons, avoiding heavy CSS frameworks.
+**Reasoning:** We wanted a premium, highly responsive "Glassmorphism" aesthetic that felt fast and professional. By managing state at the top level and passing the `currentOrg` downwards, we ensured that the UI instantly reflects changes when moving between different department dashboards.
+---
 
-### 2. Backend environment
+## 🗂️ Project Structure
 
-Create `backend/.env`:
-
-```env
-PORT=5000
-MONGO_URI=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/DATABASE?retryWrites=true&w=majority
-JWT_SECRET=your_jwt_secret
-SMTP_EMAIL=your_gmail@gmail.com
-SMTP_PASSWORD=your_gmail_app_password
-FROM_NAME=Gidyops
-```
-
-### 3. Frontend environment
-
-Create `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-### 4. Run
-
-```bash
-# Terminal 1 — API
-cd backend
-npm start
-# or: npm run dev
-
-# Terminal 2 — UI
-cd frontend
-npm run dev
-```
-
-Open the URL shown by Vite (usually `http://localhost:5173`).
-
-## Trial admin
-
-On server start, a verified trial admin is seeded:
-
-| Field    | Value             |
-|----------|-------------------|
-| Email    | `admin@secops.com` |
-| Password | `S3c!9xK2`         |
-
-No OTP is required for this account. New users register via **Create account** and verify with email OTP.
-
-## Typical flow
-
-1. Log in (trial admin or registered user)
-2. Select or create an **organization**
-3. Upload a JSON array of logs (**Upload Logs**) — up to 10,000 in one request
-4. Use search, severity/status filters, column sort, and pagination (all server-side)
-5. Select rows → **Mark Fixed** → open **View Fixed** to see the resolved list
-
-## API overview
-
-All log routes require:
-
-- `Authorization: Bearer <token>`
-- `x-organization-id: <orgId>`
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/register` | Register (sends OTP) |
-| POST | `/api/auth/verify-otp` | Verify registration OTP |
-| POST | `/api/auth/forgot-password` | Send reset OTP |
-| POST | `/api/auth/reset-password` | Reset password with OTP |
-| GET | `/api/orgs` | List my organizations |
-| POST | `/api/orgs` | Create organization |
-| POST | `/api/logs/bulk` | Bulk insert logs (array body) |
-| GET | `/api/logs` | List logs (`page`, `limit`, `search`, `severity`, `status`, `resolution`, `sortBy`, `sortOrder`) |
-| GET | `/api/logs/stats` | Dashboard stats |
-| PUT | `/api/logs/bulk-update` | e.g. mark Fixed |
-| DELETE | `/api/logs/bulk-delete` | Delete selected logs |
-| POST | `/api/logs/move` | Move logs to another org |
-
-### Bulk upload body example
-
-```json
-[
-  {
-    "action": "LOGIN",
-    "actor": "user@example.com",
-    "resource": "/api/session",
-    "severity": "INFO",
-    "status": "SUCCESS",
-    "timestamp": "2026-07-24T10:00:00.000Z"
-  }
-]
-```
-
-## Project structure
-
-```
+```text
 gidy/
 ├── backend/
-│   ├── config/          # DB connection
-│   ├── controllers/     # logs, orgs
-│   ├── middleware/      # JWT protect
-│   ├── models/          # User, Organization, Member, Log
-│   ├── routes/
-│   ├── scripts/         # seedAdmin
-│   ├── utils/           # sendEmail
-│   └── server.js
+│   ├── config/          # Database connection settings
+│   ├── controllers/     # API logic (authController, logController, orgController)
+│   ├── middleware/      # JWT verification & request protection
+│   ├── models/          # Mongoose Schemas (User, Organization, Member, Log)
+│   ├── routes/          # Express route definitions
+│   ├── scripts/         # Utility scripts (e.g., clearLogs.js, seedAdmin.js)
+│   ├── utils/           # Helper functions (e.g., sendEmail.js)
+│   └── server.js        # Main Express application entry point
+│
 └── frontend/
-    └── src/
-        ├── components/  # Login, OrganizationSelect, LogTable, ...
-        ├── App.jsx
-        └── config.js
+    ├── src/
+    │   ├── assets/      # Static images and icons
+    │   ├── components/  # React UI components (LogTable, UploadModal, Login, etc.)
+    │   ├── App.jsx      # Main frontend logic & state management
+    │   ├── config.js    # Global constants (API_URL)
+    │   └── main.jsx     # React DOM rendering entry point
+    └── package.json
 ```
 
-## Notes
+---
 
-- Search, filter, sort, and pagination run on the **server** (`GET /api/logs` query params), not only in the browser.
-- Bulk upload inserts in chunks of 2000 for reliability with large payloads (body limit 10mb).
-- Fixed logs are filtered with `resolution=FIXED` and shown on a separate dashboard view.
+## 🔄 Typical User Flow
+
+1. **Sign Up**: The user registers with their Name, Email, and Password.
+2. **Email Verification**: An OTP is sent to the registered email. The user inputs the OTP to activate their account and receive a JWT token.
+3. **Organization Selection**: 
+   - A new user will see a prompt to **Create an Organization**. 
+   - A returning user can click on an existing Organization to enter its specific dashboard.
+4. **Data Ingestion**: Inside the organization dashboard, the user clicks "Upload Logs", dragging and dropping a massive JSON payload. The logs are validated locally and pushed in chunks.
+5. **Log Management**:
+   - The user filters by "High Severity".
+   - Selects multiple critical logs using checkboxes.
+   - Marks them as **"Fixed"** or moves them to another department/organization for review.
+6. **Log Out**: The JWT and local states are cleared securely.
+
+---
+
+## 🎯 Final Thoughts
+Every feature planned during our initial check-ins was successfully executed. The platform successfully evolved from a simple log viewer into a robust, multi-tenant operations dashboard exactly as envisioned.

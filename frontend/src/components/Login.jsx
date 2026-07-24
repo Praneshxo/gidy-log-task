@@ -3,11 +3,11 @@ import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '../config';
 import './Login.css';
 
-const DEMO_EMAIL = 'admin@secops.com';
+const DEMO_EMAIL = 'admin@gidyops.com';
 const DEMO_PASSWORD = 'S3c!9xK2';
 
 const TITLES = {
-  login: 'SecOps Login',
+  login: 'Gidyops Login',
   register: 'Create Account',
   verify: 'Verify Email OTP',
   forgot: 'Forgot Password',
