@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, X, FileJson, CheckCircle2, AlertCircle, FileSearch, ArrowRight } from 'lucide-react';
+import { API_URL } from '../config';
 import './UploadModal.css';
 
 const UploadModal = ({ onClose, onSuccess }) => {
@@ -67,7 +68,7 @@ const UploadModal = ({ onClose, onSuccess }) => {
   const uploadData = async () => {
     setIsUploading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/logs/bulk', {
+      const response = await fetch(`${API_URL}/api/logs/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(previewData.parsedJson)

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Filter, ChevronLeft, ChevronRight, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import LogDrawer from './LogDrawer';
+import { API_URL } from '../config';
 import './LogTable.css';
 
 const LogTable = ({ refreshTrigger }) => {
@@ -54,7 +55,7 @@ const LogTable = ({ refreshTrigger }) => {
         ...(statusFilter && { status: statusFilter })
       });
 
-      const response = await fetch(`http://localhost:5000/api/logs?${queryParams}`, {
+      const response = await fetch(`${API_URL}/api/logs?${queryParams}`, {
         signal: controller.signal
       });
       

@@ -3,6 +3,7 @@ import { Activity, ShieldAlert, FileJson, Server } from 'lucide-react';
 import './App.css';
 import LogTable from './components/LogTable';
 import UploadModal from './components/UploadModal';
+import { API_URL } from './config';
 
 function App() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -15,7 +16,7 @@ function App() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/logs/stats');
+      const res = await fetch(`${API_URL}/api/logs/stats`);
       const data = await res.json();
       if (data.success) {
         setStats(data.data);
